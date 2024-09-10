@@ -1,46 +1,55 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import time
 
 # Função para carregar os dados da planilha
 def load_data(file):
-    excel_data = pd.ExcelFile(file)
-    df = excel_data.parse('09-09')
+    with st.spinner('Carregando os dados...'):
+        time.sleep(1)  # Simulação de carregamento para UX
+        excel_data = pd.ExcelFile(file)
+        df = excel_data.parse('09-09')
     return df
 
 # Função para criar o gráfico de hierarquia com legenda e cores baseadas na função
 def create_hierarchy_chart(df):
+    # Agrupar na última camada por "COMMON FUNCTION"
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION']]
     hierarchy_data = hierarchy_data.drop_duplicates()
 
     fig = px.treemap(hierarchy_data,
-                     path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME'],
+                     path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'COMMON FUNCTION', 'EMPLOYEE NAME'],
                      color='COMMON FUNCTION',
                      color_discrete_sequence=px.colors.qualitative.Bold,
                      title="Hierarquia Organizacional com Funções")
     
-    fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+    fig.update_layout(margin=dict(t=50, l=25, r=25, b=25), 
+                      hovermode="closest",
+                      uniformtext_minsize=10, 
+                      uniformtext_mode='hide')
     return fig
 
-# Página inicial de upload
+# Verifica se o arquivo foi carregado
 if "file_uploaded" not in st.session_state:
     st.session_state["file_uploaded"] = False
 
-# Se o arquivo foi carregado, mover para a próxima página automaticamente
+# Página de upload de arquivo
 if not st.session_state["file_uploaded"]:
     st.title("Carregar o Arquivo Excel")
-    uploaded_file = st.file_uploader("Faça upload de um arquivo Excel", type="xlsx")
+    
+    # Design mais moderno para o botão de upload
+    uploaded_file = st.file_uploader("📁 Faça upload de um arquivo Excel", type="xlsx")
 
     if uploaded_file is not None:
         st.session_state["file_uploaded"] = True
         st.session_state["data"] = load_data(uploaded_file)
-        st.experimental_rerun()
+        st.experimental_set_query_params(page="dashboard")
 
-# Página com as abas de gráfico e tabela
-else:
-    st.title("Visualização da Hierarquia Organizacional")
-
-    # Sidebar com filtros
+# Página de dashboard com abas de gráfico e tabela
+if st.session_state["file_uploaded"]:
+    st.title("Dashboard de Hierarquia Organizacional")
+    
+    # Filtros na barra lateral
     st.sidebar.title("Filtros de Pesquisa")
     st.sidebar.markdown("### Selecione os filtros desejados:")
 
@@ -116,4 +125,3 @@ else:
     with tab2:
         st.write("### Tabela de Dados Filtrados")
         st.dataframe(df)
-
