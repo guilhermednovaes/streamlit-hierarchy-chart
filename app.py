@@ -82,6 +82,13 @@ if uploaded_file is not None:
     if attendence_status != "Todos":
         df = df[df['DAILY ATTENDENCE'].str.contains(attendence_status, case=False, na=False)]
 
+    # Converter "EMPLOYEE ID" para numérico, ignorando erros, e remover valores NaN
+    df['EMPLOYEE ID'] = pd.to_numeric(df['EMPLOYEE ID'], errors='coerce')
+    df = df.dropna(subset=['EMPLOYEE ID'])
+    
+    # Converter para inteiro (opcional, se desejar que o ID seja representado como inteiro)
+    df['EMPLOYEE ID'] = df['EMPLOYEE ID'].astype(int)
+
     # Filtro por intervalo de ID do Empregado (SLIDER)
     min_id = int(df['EMPLOYEE ID'].min())
     max_id = int(df['EMPLOYEE ID'].max())
