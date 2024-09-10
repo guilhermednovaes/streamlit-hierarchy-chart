@@ -44,6 +44,7 @@ if uploaded_file is not None:
 
     # Adicionar filtros para a pesquisa
     st.sidebar.title("Filtros de Pesquisa")
+    st.sidebar.markdown("### Selecione os filtros desejados:")
 
     # Filtro por Nome do Funcionário
     employee_name = st.sidebar.text_input("Nome do Funcionário", "")
@@ -66,39 +67,45 @@ if uploaded_file is not None:
         df = df[df['INCHARGE SUPERVISOR'].str.contains(supervisor_name, case=False, na=False)]
 
     # Filtro por Função (MULTI-SELEÇÃO)
-    functions = df['FUNCTION'].unique()
-    selected_functions = st.sidebar.multiselect("Filtrar por Função", options=functions, default=functions)
-    if selected_functions:
-        df = df[df['FUNCTION'].isin(selected_functions)]
+    if not df['FUNCTION'].isnull().all():
+        functions = df['FUNCTION'].unique()
+        selected_functions = st.sidebar.multiselect("Filtrar por Função", options=functions, default=functions)
+        if selected_functions:
+            df = df[df['FUNCTION'].isin(selected_functions)]
     
     # Filtro por Turno (MULTI-SELEÇÃO)
-    shifts = df['SHIFT'].unique()
-    selected_shifts = st.sidebar.multiselect("Filtrar por Turno", options=shifts, default=shifts)
-    if selected_shifts:
-        df = df[df['SHIFT'].isin(selected_shifts)]
+    if not df['SHIFT'].isnull().all():
+        shifts = df['SHIFT'].unique()
+        selected_shifts = st.sidebar.multiselect("Filtrar por Turno", options=shifts, default=shifts)
+        if selected_shifts:
+            df = df[df['SHIFT'].isin(selected_shifts)]
 
     # Filtro por Presença (SELEÇÃO ÚNICA)
-    attendence_status = st.sidebar.selectbox("Filtrar por Presença", options=["Todos", "Presente", "Ausente", "Emprestado"], index=0)
-    if attendence_status != "Todos":
-        df = df[df['DAILY ATTENDENCE'].str.contains(attendence_status, case=False, na=False)]
+    if not df['DAILY ATTENDENCE'].isnull().all():
+        attendence_status = st.sidebar.selectbox("Filtrar por Presença", options=["Todos", "Presente", "Ausente", "Emprestado"], index=0)
+        if attendence_status != "Todos":
+            df = df[df['DAILY ATTENDENCE'].str.contains(attendence_status, case=False, na=False)]
 
     # Converter "EMPLOYEE ID" para numérico, ignorando erros, e remover valores NaN
     df['EMPLOYEE ID'] = pd.to_numeric(df['EMPLOYEE ID'], errors='coerce')
     df = df.dropna(subset=['EMPLOYEE ID'])
     
-    # Converter para inteiro (opcional, se desejar que o ID seja representado como inteiro)
-    df['EMPLOYEE ID'] = df['EMPLOYEE ID'].astype(int)
+    # Verifica se há IDs válidos para o slider
+    if not df['EMPLOYEE ID'].isnull().all():
+        # Filtro por intervalo de ID do Empregado (SLIDER)
+        min_id = int(df['EMPLOYEE ID'].min())
+        max_id = int(df['EMPLOYEE ID'].max())
+        employee_id_range = st.sidebar.slider("Intervalo de ID do Funcionário", min_value=min_id, max_value=max_id, value=(min_id, max_id))
+        df = df[(df['EMPLOYEE ID'] >= employee_id_range[0]) & (df['EMPLOYEE ID'] <= employee_id_range[1])]
+    else:
+        st.sidebar.write("Nenhum ID de Funcionário disponível para o filtro.")
 
-    # Filtro por intervalo de ID do Empregado (SLIDER)
-    min_id = int(df['EMPLOYEE ID'].min())
-    max_id = int(df['EMPLOYEE ID'].max())
-    employee_id_range = st.sidebar.slider("Intervalo de ID do Funcionário", min_value=min_id, max_value=max_id, value=(min_id, max_id))
-    df = df[(df['EMPLOYEE ID'] >= employee_id_range[0]) & (df['EMPLOYEE ID'] <= employee_id_range[1])]
-
-    # Cria e exibe o gráfico de hierarquia apenas se houver dados
+    # Exibe o gráfico de hierarquia se houver dados
     if not df.empty:
-        st.write("Gráfico de Hierarquia")
+        st.write("### Gráfico de Hierarquia")
         fig = create_hierarchy_chart(df)
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.write("Nenhum dado encontrado para os filtros aplicados.")
+        st.write("### Nenhum dado encontrado para os filtros aplicados.")
+else:
+    st.write("Por favor, faça upload de um arquivo Excel para continuar.")
