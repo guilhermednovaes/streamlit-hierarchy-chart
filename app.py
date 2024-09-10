@@ -3,36 +3,35 @@ import pandas as pd
 import plotly.express as px
 import io
 
-# Função para carregar o arquivo MANPOWER.xlsx automaticamente do repositório
+# Função para carregar o arquivo MANPOWER.xlsx automaticamente
 def load_data():
-    # Carregar o arquivo Excel diretamente do repositório local
     file_path = 'MANPOWER.xlsx'
     excel_data = pd.ExcelFile(file_path)
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia com funções diferentes para cada nível
+# Função para criar o gráfico de hierarquia sem cargos no gráfico, mas com legenda separada
 def create_hierarchy_chart(df):
-    # Adiciona uma coluna para identificar a função no gráfico
-    df['LEAD FUNCTION'] = 'LEAD'
-    df['SUPERVISOR FUNCTION'] = 'INCHARGE SUPERVISOR'
-    df['LEADER FUNCTION'] = 'LEADER'
-    
-    # Preparar dados para o gráfico de hierarquia
-    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'LEAD FUNCTION', 'INCHARGE SUPERVISOR', 'SUPERVISOR FUNCTION', 'LEADER', 'LEADER FUNCTION', 'EMPLOYEE NAME', 'COMMON FUNCTION']]
+    # Preparar os dados de hierarquia, associando as cores às funções
+    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION']]
     hierarchy_data = hierarchy_data.drop_duplicates()
 
-    # Criar o gráfico de hierarquia agrupando corretamente as funções
+    # Criar o gráfico de hierarquia
     fig = px.treemap(hierarchy_data,
-                     path=['COMPANY', 'PROJECT', 'LEAD', 'LEAD FUNCTION', 'INCHARGE SUPERVISOR', 'SUPERVISOR FUNCTION', 'LEADER', 'LEADER FUNCTION', 'COMMON FUNCTION', 'EMPLOYEE NAME'],
-                     color='COMMON FUNCTION',  # Cor baseada na função comum
+                     path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME'],
+                     color='COMMON FUNCTION',  # Usar a função comum para definir as cores
                      color_discrete_sequence=px.colors.qualitative.Bold,
                      title="Hierarquia Organizacional com Funções")
     
+    # Ajustar o layout para remover texto excessivo e melhorar o hover
     fig.update_layout(margin=dict(t=50, l=25, r=25, b=25), 
                       hovermode="closest",
                       uniformtext_minsize=10, 
                       uniformtext_mode='hide')
+
+    # Exibir apenas o nome no hover
+    fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>')
+
     return fig
 
 # Função para converter DataFrame para CSV
@@ -117,11 +116,14 @@ with tab1:
     fig = create_hierarchy_chart(df)
     st.plotly_chart(fig, use_container_width=True)
 
-    # Legenda
-    st.write("#### Legenda:")
+    # Legenda separada
+    st.write("#### Legenda de Cores:")
     st.markdown("""
-    - **Funções em Cores**:
-        - Cada cor no gráfico representa uma função diferente baseada na coluna `COMMON FUNCTION`.
+    - **Funções Representadas pelas Cores**:
+        - Azul: LEAD
+        - Verde: INCHARGE SUPERVISOR
+        - Vermelho: LEADER
+        - Amarelo: EMPLOYEE NAME (Função baseada na coluna `COMMON FUNCTION`)
     """)
 
 with tab2:
