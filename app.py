@@ -1,8 +1,6 @@
-# app.py
-
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
+import plotly.express as px
 
 # Função para carregar os dados da planilha
 def load_data(file):
@@ -17,19 +15,18 @@ def create_hierarchy_chart(df):
     # Filtra as colunas de interesse
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME']]
     
-    # Remove duplicatas para evitar repetição no gráfico
+    # Remove duplicatas
     hierarchy_data = hierarchy_data.drop_duplicates()
-    
-    # Criar a hierarquia de Company até Employee Name
-    fig = go.Figure(go.Sunburst(
-        labels=hierarchy_data['EMPLOYEE NAME'].tolist() + hierarchy_data['LEADER'].tolist() + 
-               hierarchy_data['INCHARGE SUPERVISOR'].tolist() + hierarchy_data['LEAD'].tolist() +
-               hierarchy_data['PROJECT'].tolist() + hierarchy_data['COMPANY'].tolist(),
-        parents=[''] * len(hierarchy_data),  # No sunburst need for parent relationship
-        maxdepth=6  # Até o nível de EMPLOYEE NAME
-    ))
 
-    fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
+    # Cria um gráfico de hierarquia do tipo "treemap"
+    fig = px.treemap(hierarchy_data,
+                     path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME'],
+                     values=None,  # Sem valores associados, apenas visualização hierárquica
+                     title="Hierarquia Organizacional")
+    
+    # Melhora a aparência do gráfico
+    fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+    
     return fig
 
 # Configuração do site no Streamlit
@@ -48,4 +45,4 @@ if uploaded_file is not None:
     # Cria e exibe o gráfico de hierarquia
     st.write("Gráfico de Hierarquia")
     fig = create_hierarchy_chart(df)
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
