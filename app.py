@@ -42,7 +42,33 @@ if uploaded_file is not None:
     st.write("Exibindo as primeiras linhas da planilha:")
     st.dataframe(df.head())
 
-    # Cria e exibe o gráfico de hierarquia
-    st.write("Gráfico de Hierarquia")
-    fig = create_hierarchy_chart(df)
-    st.plotly_chart(fig, use_container_width=True)
+    # Adicionar filtros para a pesquisa
+    st.sidebar.title("Filtros de Pesquisa")
+
+    # Filtro por Nome do Funcionário
+    employee_name = st.sidebar.text_input("Nome do Funcionário", "")
+    if employee_name:
+        df = df[df['EMPLOYEE NAME'].str.contains(employee_name, case=False, na=False)]
+
+    # Filtro por Projeto
+    project_name = st.sidebar.text_input("Nome do Projeto", "")
+    if project_name:
+        df = df[df['PROJECT'].str.contains(project_name, case=False, na=False)]
+
+    # Filtro por Empresa
+    company_name = st.sidebar.text_input("Nome da Empresa", "")
+    if company_name:
+        df = df[df['COMPANY'].str.contains(company_name, case=False, na=False)]
+    
+    # Filtro por Supervisor Responsável
+    supervisor_name = st.sidebar.text_input("Nome do Supervisor", "")
+    if supervisor_name:
+        df = df[df['INCHARGE SUPERVISOR'].str.contains(supervisor_name, case=False, na=False)]
+
+    # Cria e exibe o gráfico de hierarquia apenas se houver dados
+    if not df.empty:
+        st.write("Gráfico de Hierarquia")
+        fig = create_hierarchy_chart(df)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.write("Nenhum dado encontrado para os filtros aplicados.")
