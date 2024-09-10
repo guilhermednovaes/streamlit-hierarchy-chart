@@ -10,26 +10,30 @@ def load_data():
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia sem cargos no gráfico, mas com legenda separada
+# Função para criar o gráfico de hierarquia com nome e função no cartão
 def create_hierarchy_chart(df):
-    # Preparar os dados de hierarquia, associando as cores às funções
+    # Preparar os dados de hierarquia
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION']]
     hierarchy_data = hierarchy_data.drop_duplicates()
 
-    # Criar o gráfico de hierarquia
+    # Criar um label customizado para incluir nome e função do funcionário
+    hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + hierarchy_data['COMMON FUNCTION']
+
+    # Criar o gráfico de hierarquia com nome e função
     fig = px.treemap(hierarchy_data,
-                     path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME'],
-                     color='COMMON FUNCTION',  # Usar a função comum para definir as cores
+                     path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
+                     color='COMMON FUNCTION',  # Cor baseada na função comum
                      color_discrete_sequence=px.colors.qualitative.Bold,
                      title="Hierarquia Organizacional com Funções")
     
-    # Ajustar o layout para remover texto excessivo e melhorar o hover
-    fig.update_layout(margin=dict(t=50, l=25, r=25, b=25), 
+    # Ajustar o layout para otimizar a tela
+    fig.update_layout(margin=dict(t=20, l=10, r=10, b=10),
+                      height=800,  # Ajuste para altura do gráfico, ocupando a tela inteira
                       hovermode="closest",
-                      uniformtext_minsize=10, 
+                      uniformtext_minsize=14,  # Ajustar tamanho do texto
                       uniformtext_mode='hide')
 
-    # Exibir apenas o nome no hover
+    # Configurar o hover para exibir apenas nome e função
     fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>')
 
     return fig
@@ -51,7 +55,7 @@ df = load_data()
 
 # Página de dashboard com abas de gráfico e tabela
 st.title("Dashboard de Hierarquia Organizacional")
-    
+
 # Filtros na barra lateral
 st.sidebar.title("Filtros de Pesquisa")
 st.sidebar.markdown("### Selecione os filtros desejados:")
