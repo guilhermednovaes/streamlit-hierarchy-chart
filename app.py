@@ -13,7 +13,7 @@ def load_data(file):
 # Função para criar o gráfico de hierarquia
 def create_hierarchy_chart(df):
     # Filtra as colunas de interesse
-    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME']]
+    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'FUNCTION', 'SHIFT', 'DAILY ATTENDENCE']]
     
     # Remove duplicatas
     hierarchy_data = hierarchy_data.drop_duplicates()
@@ -64,6 +64,29 @@ if uploaded_file is not None:
     supervisor_name = st.sidebar.text_input("Nome do Supervisor", "")
     if supervisor_name:
         df = df[df['INCHARGE SUPERVISOR'].str.contains(supervisor_name, case=False, na=False)]
+
+    # Filtro por Função (MULTI-SELEÇÃO)
+    functions = df['FUNCTION'].unique()
+    selected_functions = st.sidebar.multiselect("Filtrar por Função", options=functions, default=functions)
+    if selected_functions:
+        df = df[df['FUNCTION'].isin(selected_functions)]
+    
+    # Filtro por Turno (MULTI-SELEÇÃO)
+    shifts = df['SHIFT'].unique()
+    selected_shifts = st.sidebar.multiselect("Filtrar por Turno", options=shifts, default=shifts)
+    if selected_shifts:
+        df = df[df['SHIFT'].isin(selected_shifts)]
+
+    # Filtro por Presença (SELEÇÃO ÚNICA)
+    attendence_status = st.sidebar.selectbox("Filtrar por Presença", options=["Todos", "Presente", "Ausente", "Emprestado"], index=0)
+    if attendence_status != "Todos":
+        df = df[df['DAILY ATTENDENCE'].str.contains(attendence_status, case=False, na=False)]
+
+    # Filtro por intervalo de ID do Empregado (SLIDER)
+    min_id = int(df['EMPLOYEE ID'].min())
+    max_id = int(df['EMPLOYEE ID'].max())
+    employee_id_range = st.sidebar.slider("Intervalo de ID do Funcionário", min_value=min_id, max_value=max_id, value=(min_id, max_id))
+    df = df[(df['EMPLOYEE ID'] >= employee_id_range[0]) & (df['EMPLOYEE ID'] <= employee_id_range[1])]
 
     # Cria e exibe o gráfico de hierarquia apenas se houver dados
     if not df.empty:
