@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import io  # Certifique-se de importar o io para trabalhar com o BytesIO
+import io
 
 # Função para carregar o arquivo MANPOWER.xlsx automaticamente
 def load_data():
@@ -10,7 +10,7 @@ def load_data():
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia com melhorias
+# Função para criar o gráfico de hierarquia com legenda interna
 def create_hierarchy_chart(df, filter_function=None):
     # Preparar os dados de hierarquia
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION', 'EMPLOYEE ID', 'DAILY ATTENDENCE']]
@@ -23,19 +23,32 @@ def create_hierarchy_chart(df, filter_function=None):
     # Criar um label customizado para incluir nome, função e status de presença no hover
     hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + 'Função: ' + hierarchy_data['COMMON FUNCTION'] + '<br>ID: ' + hierarchy_data['EMPLOYEE ID'].astype(str) + '<br>Status: ' + hierarchy_data['DAILY ATTENDENCE']
 
-    # Criar o gráfico de hierarquia com zoom progressivo
+    # Criar o gráfico de hierarquia com zoom progressivo e legenda dentro do gráfico
     fig = px.treemap(hierarchy_data,
                      path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
                      color='COMMON FUNCTION',  # Cor baseada na função comum
-                     color_discrete_sequence=px.colors.qualitative.Safe,  # Cores suaves e harmoniosas
+                     color_discrete_map={  # Mapa de cores para cada função, ajustando o contraste
+                         'WELDER': 'blue',
+                         'GRINDER': 'purple',
+                         'PIPE FITTER': 'green',
+                         'LEADER': 'orange',
+                         'SUPERVISOR': 'red',
+                         # Adicione outras funções conforme necessário
+                     },
                      title="Hierarquia Organizacional com Funções")
 
-    # Ajustar o layout para otimizar a tela e zoom progressivo
-    fig.update_layout(margin=dict(t=20, l=10, r=10, b=10),
-                      height=800,  # Ajuste para altura do gráfico, ocupando a tela inteira
-                      hovermode="closest",
-                      uniformtext_minsize=14,  # Ajustar tamanho do texto
-                      uniformtext_mode='hide')
+    # Ajustar o layout para otimizar a tela, zoom progressivo e legenda dentro do gráfico
+    fig.update_layout(
+        margin=dict(t=20, l=10, r=10, b=10),
+        height=800,  # Ajuste para altura do gráfico, ocupando a tela inteira
+        hovermode="closest",
+        uniformtext_minsize=14,  # Ajustar tamanho do texto
+        uniformtext_mode='hide',
+        legend_title="Funções"  # Adicionar título à legenda dentro do gráfico
+    )
+
+    # Adicionar a legenda das cores diretamente no gráfico
+    fig.update_traces(marker=dict(colorscale='Rainbow', line=dict(color='#000000', width=1)))
 
     # Configurar o hover para exibir nome, função e detalhes
     fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>')
@@ -108,13 +121,6 @@ with tab1:
     st.write("### Gráfico de Hierarquia com Cores por Função")
     fig = create_hierarchy_chart(df_filtered, filter_function=selected_common_functions)
     st.plotly_chart(fig, use_container_width=True)
-
-    # Legenda separada
-    st.write("#### Legenda de Cores:")
-    st.markdown("""
-    - **Funções Representadas pelas Cores**:
-        - Cada cor representa uma função específica.
-    """)
 
 with tab2:
     st.write("### Tabela de Dados Filtrados")
