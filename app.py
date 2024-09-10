@@ -10,20 +10,21 @@ def load_data(file):
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia
+# Função para criar o gráfico de hierarquia com cores baseadas na função
 def create_hierarchy_chart(df):
     # Filtra as colunas de interesse
-    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'FUNCTION', 'SHIFT', 'DAILY ATTENDENCE']]
+    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION']]
     
     # Remove duplicatas
     hierarchy_data = hierarchy_data.drop_duplicates()
 
-    # Cria um gráfico de hierarquia do tipo "treemap"
+    # Cria um gráfico de hierarquia do tipo "treemap", colorindo por função
     fig = px.treemap(hierarchy_data,
                      path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME'],
-                     values=None,  # Sem valores associados, apenas visualização hierárquica
-                     title="Hierarquia Organizacional")
-    
+                     color='COMMON FUNCTION',  # Define as cores com base na função comum
+                     color_discrete_sequence=px.colors.qualitative.Bold,  # Escolhe uma paleta de cores
+                     title="Hierarquia Organizacional com Funções")
+
     # Melhora a aparência do gráfico
     fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
     
@@ -66,12 +67,12 @@ if uploaded_file is not None:
     if supervisor_name:
         df = df[df['INCHARGE SUPERVISOR'].str.contains(supervisor_name, case=False, na=False)]
 
-    # Filtro por Função (MULTI-SELEÇÃO)
-    if not df['FUNCTION'].isnull().all():
-        functions = df['FUNCTION'].unique()
-        selected_functions = st.sidebar.multiselect("Filtrar por Função", options=functions, default=functions)
-        if selected_functions:
-            df = df[df['FUNCTION'].isin(selected_functions)]
+    # Filtro por Função (MULTI-SELEÇÃO) usando a coluna 'COMMON FUNCTION'
+    if not df['COMMON FUNCTION'].isnull().all():
+        common_functions = df['COMMON FUNCTION'].unique()
+        selected_common_functions = st.sidebar.multiselect("Filtrar por Função (Common Function)", options=common_functions, default=common_functions)
+        if selected_common_functions:
+            df = df[df['COMMON FUNCTION'].isin(selected_common_functions)]
     
     # Filtro por Turno (MULTI-SELEÇÃO)
     if not df['SHIFT'].isnull().all():
@@ -80,11 +81,12 @@ if uploaded_file is not None:
         if selected_shifts:
             df = df[df['SHIFT'].isin(selected_shifts)]
 
-    # Filtro por Presença (SELEÇÃO ÚNICA)
+    # Filtro por Presença (MULTI-SELEÇÃO) com valores em inglês
     if not df['DAILY ATTENDENCE'].isnull().all():
-        attendence_status = st.sidebar.selectbox("Filtrar por Presença", options=["Todos", "Presente", "Ausente", "Emprestado"], index=0)
-        if attendence_status != "Todos":
-            df = df[df['DAILY ATTENDENCE'].str.contains(attendence_status, case=False, na=False)]
+        attendence_options = df['DAILY ATTENDENCE'].unique()
+        selected_attendence = st.sidebar.multiselect("Filtrar por Presença", options=attendence_options, default=attendence_options)
+        if selected_attendence:
+            df = df[df['DAILY ATTENDENCE'].isin(selected_attendence)]
 
     # Converter "EMPLOYEE ID" para numérico, ignorando erros, e remover valores NaN
     df['EMPLOYEE ID'] = pd.to_numeric(df['EMPLOYEE ID'], errors='coerce')
@@ -102,7 +104,7 @@ if uploaded_file is not None:
 
     # Exibe o gráfico de hierarquia se houver dados
     if not df.empty:
-        st.write("### Gráfico de Hierarquia")
+        st.write("### Gráfico de Hierarquia com Cores por Função")
         fig = create_hierarchy_chart(df)
         st.plotly_chart(fig, use_container_width=True)
     else:
