@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import io
 
 # Função para carregar o arquivo MANPOWER.xlsx automaticamente
 def load_data():
@@ -10,30 +9,34 @@ def load_data():
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia com nome e função no cartão
-def create_hierarchy_chart(df):
+# Função para criar o gráfico de hierarquia com melhorias
+def create_hierarchy_chart(df, filter_function=None):
     # Preparar os dados de hierarquia
-    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION']]
+    hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION', 'EMPLOYEE ID', 'DAILY ATTENDENCE']]
     hierarchy_data = hierarchy_data.drop_duplicates()
 
-    # Criar um label customizado para incluir nome e função do funcionário
-    hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + hierarchy_data['COMMON FUNCTION']
+    # Aplicar o filtro de função, se houver
+    if filter_function:
+        hierarchy_data = hierarchy_data[hierarchy_data['COMMON FUNCTION'].isin(filter_function)]
 
-    # Criar o gráfico de hierarquia com nome e função
+    # Criar um label customizado para incluir nome, função e status de presença no hover
+    hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + 'Função: ' + hierarchy_data['COMMON FUNCTION'] + '<br>ID: ' + hierarchy_data['EMPLOYEE ID'].astype(str) + '<br>Status: ' + hierarchy_data['DAILY ATTENDENCE']
+
+    # Criar o gráfico de hierarquia com zoom progressivo
     fig = px.treemap(hierarchy_data,
                      path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
                      color='COMMON FUNCTION',  # Cor baseada na função comum
-                     color_discrete_sequence=px.colors.qualitative.Bold,
+                     color_discrete_sequence=px.colors.qualitative.Safe,  # Cores suaves e harmoniosas
                      title="Hierarquia Organizacional com Funções")
-    
-    # Ajustar o layout para otimizar a tela
+
+    # Ajustar o layout para otimizar a tela e zoom progressivo
     fig.update_layout(margin=dict(t=20, l=10, r=10, b=10),
                       height=800,  # Ajuste para altura do gráfico, ocupando a tela inteira
                       hovermode="closest",
                       uniformtext_minsize=14,  # Ajustar tamanho do texto
                       uniformtext_mode='hide')
 
-    # Configurar o hover para exibir apenas nome e função
+    # Configurar o hover para exibir nome, função e detalhes
     fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>')
 
     return fig
@@ -60,82 +63,64 @@ st.title("Dashboard de Hierarquia Organizacional")
 st.sidebar.title("Filtros de Pesquisa")
 st.sidebar.markdown("### Selecione os filtros desejados:")
 
+# Filtro de Função (Modo Foco)
+common_functions = df['COMMON FUNCTION'].unique()
+selected_common_functions = st.sidebar.multiselect("Filtrar por Função (Common Function)", options=common_functions, default=common_functions)
+df_filtered = df[df['COMMON FUNCTION'].isin(selected_common_functions)]
+
 # Filtro por Nome do Funcionário
 employee_name = st.sidebar.text_input("Nome do Funcionário", "")
 if employee_name:
-    df = df[df['EMPLOYEE NAME'].str.contains(employee_name, case=False, na=False)]
+    df_filtered = df_filtered[df_filtered['EMPLOYEE NAME'].str.contains(employee_name, case=False, na=False)]
 
 # Filtro por Projeto
 project_name = st.sidebar.text_input("Nome do Projeto", "")
 if project_name:
-    df = df[df['PROJECT'].str.contains(project_name, case=False, na=False)]
+    df_filtered = df_filtered[df_filtered['PROJECT'].str.contains(project_name, case=False, na=False)]
 
 # Filtro por Empresa
 company_name = st.sidebar.text_input("Nome da Empresa", "")
 if company_name:
-    df = df[df['COMPANY'].str.contains(company_name, case=False, na=False)]
+    df_filtered = df_filtered[df_filtered['COMPANY'].str.contains(company_name, case=False, na=False)]
 
 # Filtro por Supervisor Responsável
 supervisor_name = st.sidebar.text_input("Nome do Supervisor", "")
 if supervisor_name:
-    df = df[df['INCHARGE SUPERVISOR'].str.contains(supervisor_name, case=False, na=False)]
-
-# Filtro por Função (MULTI-SELEÇÃO) usando a coluna 'COMMON FUNCTION'
-if not df['COMMON FUNCTION'].isnull().all():
-    common_functions = df['COMMON FUNCTION'].unique()
-    selected_common_functions = st.sidebar.multiselect("Filtrar por Função (Common Function)", options=common_functions, default=common_functions)
-    if selected_common_functions:
-        df = df[df['COMMON FUNCTION'].isin(selected_common_functions)]
+    df_filtered = df_filtered[df_filtered['INCHARGE SUPERVISOR'].str.contains(supervisor_name, case=False, na=False)]
 
 # Filtro por Turno (MULTI-SELEÇÃO)
-if not df['SHIFT'].isnull().all():
-    shifts = df['SHIFT'].unique()
-    selected_shifts = st.sidebar.multiselect("Filtrar por Turno", options=shifts, default=shifts)
-    if selected_shifts:
-        df = df[df['SHIFT'].isin(selected_shifts)]
+shifts = df_filtered['SHIFT'].unique()
+selected_shifts = st.sidebar.multiselect("Filtrar por Turno", options=shifts, default=shifts)
+if selected_shifts:
+    df_filtered = df_filtered[df_filtered['SHIFT'].isin(selected_shifts)]
 
 # Filtro por Presença (MULTI-SELEÇÃO) com valores em inglês
-if not df['DAILY ATTENDENCE'].isnull().all():
-    attendence_options = df['DAILY ATTENDENCE'].unique()
-    selected_attendence = st.sidebar.multiselect("Filtrar por Presença", options=attendence_options, default=attendence_options)
-    if selected_attendence:
-        df = df[df['DAILY ATTENDENCE'].isin(selected_attendence)]
-
-# Converter "EMPLOYEE ID" para numérico, ignorando erros, e remover valores NaN
-df['EMPLOYEE ID'] = pd.to_numeric(df['EMPLOYEE ID'], errors='coerce')
-df = df.dropna(subset=['EMPLOYEE ID'])
-
-# Verifica se há IDs válidos para o slider
-if not df['EMPLOYEE ID'].isnull().all():
-    min_id = int(df['EMPLOYEE ID'].min())
-    max_id = int(df['EMPLOYEE ID'].max())
-    employee_id_range = st.sidebar.slider("Intervalo de ID do Funcionário", min_value=min_id, max_value=max_id, value=(min_id, max_id))
-    df = df[(df['EMPLOYEE ID'] >= employee_id_range[0]) & (df['EMPLOYEE ID'] <= employee_id_range[1])]
+attendence_options = df_filtered['DAILY ATTENDENCE'].unique()
+selected_attendence = st.sidebar.multiselect("Filtrar por Presença", options=attendence_options, default=attendence_options)
+if selected_attendence:
+    df_filtered = df_filtered[df_filtered['DAILY ATTENDENCE'].isin(selected_attendence)]
 
 # Exibe abas
 tab1, tab2 = st.tabs(["Gráfico de Hierarquia", "Tabela de Dados"])
 
 with tab1:
     st.write("### Gráfico de Hierarquia com Cores por Função")
-    fig = create_hierarchy_chart(df)
+    fig = create_hierarchy_chart(df_filtered, filter_function=selected_common_functions)
     st.plotly_chart(fig, use_container_width=True)
 
     # Legenda separada
     st.write("#### Legenda de Cores:")
     st.markdown("""
     - **Funções Representadas pelas Cores**:
-        - Azul: LEAD
-        - Verde: INCHARGE SUPERVISOR
-        - Vermelho: LEADER
-        - Amarelo: EMPLOYEE NAME (Função baseada na coluna `COMMON FUNCTION`)
+        - Cada cor representa uma função específica.
     """)
 
 with tab2:
     st.write("### Tabela de Dados Filtrados")
-    st.dataframe(df)
+    st.dataframe(df_filtered)
 
     # Botão para baixar dados em CSV
-    csv = convert_df_to_csv(df)
+    csv = convert_df_to_csv(df_filtered)
     st.download_button(
         label="📥 Baixar dados filtrados em CSV",
         data=csv,
@@ -144,7 +129,7 @@ with tab2:
     )
 
     # Botão para baixar dados em Excel
-    excel = convert_df_to_excel(df)
+    excel = convert_df_to_excel(df_filtered)
     st.download_button(
         label="📥 Baixar dados filtrados em Excel",
         data=excel,
