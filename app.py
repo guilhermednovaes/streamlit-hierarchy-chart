@@ -10,7 +10,7 @@ def load_data():
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia com melhorias visuais
+# Função para criar o gráfico de hierarquia com design refinado
 def create_hierarchy_chart(df, filter_function=None):
     # Preparar os dados de hierarquia
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION', 'EMPLOYEE ID', 'DAILY ATTENDENCE']]
@@ -23,32 +23,36 @@ def create_hierarchy_chart(df, filter_function=None):
     # Criar um label customizado para incluir nome, função e status de presença no hover
     hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + 'Função: ' + hierarchy_data['COMMON FUNCTION'] + '<br>ID: ' + hierarchy_data['EMPLOYEE ID'].astype(str) + '<br>Status: ' + hierarchy_data['DAILY ATTENDENCE']
 
-    # Criar o gráfico de hierarquia com zoom progressivo e paleta de cores profissionais
-    fig = px.treemap(hierarchy_data,
-                     path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
-                     color='COMMON FUNCTION',  # Cor baseada na função comum
-                     color_discrete_map={  # Mapa de cores profissional
-                         'WELDER': '#1f77b4',  # Azul corporativo
-                         'GRINDER': '#ff7f0e',  # Laranja claro
-                         'PIPE FITTER': '#2ca02c',  # Verde suave
-                         'LEADER': '#d62728',  # Vermelho sutil
-                         'SUPERVISOR': '#9467bd',  # Roxo elegante
-                         'EMPLOYEE': '#8c564b',  # Marrom claro para funcionários
-                         # Adicione outras funções conforme necessário
-                     },
-                     title="Hierarquia Organizacional com Funções")
+    # Criar o gráfico de hierarquia com uma paleta de cores elegante e discreta
+    fig = px.treemap(
+        hierarchy_data,
+        path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
+        color='COMMON FUNCTION',
+        color_discrete_map={  # Paleta de cores neutras e profissionais
+            'WELDER': '#5D6D7E',      # Cinza neutro
+            'GRINDER': '#AAB7B8',     # Cinza claro
+            'PIPE FITTER': '#3498DB', # Azul elegante
+            'LEADER': '#2ECC71',      # Verde sutil
+            'SUPERVISOR': '#F4D03F',  # Amarelo suave
+            'EMPLOYEE': '#F5B7B1'     # Rosa suave
+        },
+        title="Hierarquia Organizacional com Funções"
+    )
 
-    # Ajustar o layout para otimizar a tela e adicionar espaçamento apropriado
+    # Ajustar o layout para ser mais espaçado e limpo
     fig.update_layout(
         margin=dict(t=50, l=25, r=25, b=25),
         height=800,  # Ajuste para altura do gráfico, ocupando a tela inteira
         hovermode="closest",
-        uniformtext_minsize=12,  # Ajustar tamanho do texto para melhor legibilidade
+        uniformtext_minsize=14,  # Ajustar o tamanho do texto para melhor legibilidade
         uniformtext_mode='hide',
-        legend_title="Funções",  # Adicionar título à legenda
         paper_bgcolor='rgba(0,0,0,0)',  # Fundo transparente para dar um aspecto mais corporativo
-        plot_bgcolor='rgba(0,0,0,0)'  # Transparência no fundo do gráfico
+        plot_bgcolor='#FFFFFF',  # Fundo branco suave
+        font=dict(family="Arial", size=12, color="#000000")  # Fonte elegante e consistente
     )
+
+    # Ajuste de bordas e espaçamento entre os cartões
+    fig.update_traces(marker=dict(line=dict(color='#000000', width=0.5)))  # Bordas finas e pretas para melhor separação
 
     # Configurar o hover para exibir nome, função e detalhes
     fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>', textinfo='label+text')
