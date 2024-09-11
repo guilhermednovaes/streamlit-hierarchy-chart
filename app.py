@@ -10,7 +10,7 @@ def load_data():
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia com design refinado
+# Função para criar o gráfico de hierarquia com melhorias de legibilidade e navegação
 def create_hierarchy_chart(df, filter_function=None):
     # Preparar os dados de hierarquia
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION', 'EMPLOYEE ID', 'DAILY ATTENDENCE']]
@@ -23,12 +23,12 @@ def create_hierarchy_chart(df, filter_function=None):
     # Criar um label customizado para incluir nome, função e status de presença no hover
     hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + 'Função: ' + hierarchy_data['COMMON FUNCTION'] + '<br>ID: ' + hierarchy_data['EMPLOYEE ID'].astype(str) + '<br>Status: ' + hierarchy_data['DAILY ATTENDENCE']
 
-    # Criar o gráfico de hierarquia com uma paleta de cores elegante e discreta
+    # Criar o gráfico de hierarquia com zoom interativo e legendas apropriadas
     fig = px.treemap(
         hierarchy_data,
         path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
         color='COMMON FUNCTION',
-        color_discrete_map={  # Paleta de cores neutras e profissionais
+        color_discrete_map={  # Paleta de cores elegante e discreta
             'WELDER': '#5D6D7E',      # Cinza neutro
             'GRINDER': '#AAB7B8',     # Cinza claro
             'PIPE FITTER': '#3498DB', # Azul elegante
@@ -39,20 +39,20 @@ def create_hierarchy_chart(df, filter_function=None):
         title="Hierarquia Organizacional com Funções"
     )
 
-    # Ajustar o layout para ser mais espaçado e limpo
+    # Ajustar o layout para otimizar a navegação em tela cheia
     fig.update_layout(
-        margin=dict(t=50, l=25, r=25, b=25),
-        height=800,  # Ajuste para altura do gráfico, ocupando a tela inteira
+        margin=dict(t=20, l=10, r=10, b=20),
+        height=1000,  # Ocupar a tela inteira
         hovermode="closest",
-        uniformtext_minsize=14,  # Ajustar o tamanho do texto para melhor legibilidade
+        uniformtext_minsize=14,  # Ajuste de texto dinâmico para manter legibilidade
         uniformtext_mode='hide',
         paper_bgcolor='rgba(0,0,0,0)',  # Fundo transparente para dar um aspecto mais corporativo
         plot_bgcolor='#FFFFFF',  # Fundo branco suave
-        font=dict(family="Arial", size=12, color="#000000")  # Fonte elegante e consistente
+        font=dict(family="Arial", size=12, color="#000000")  # Fonte elegante e legível
     )
 
     # Ajuste de bordas e espaçamento entre os cartões
-    fig.update_traces(marker=dict(line=dict(color='#000000', width=0.5)))  # Bordas finas e pretas para melhor separação
+    fig.update_traces(marker=dict(line=dict(color='#000000', width=0.5)))  # Bordas finas para melhor separação
 
     # Configurar o hover para exibir nome, função e detalhes
     fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>', textinfo='label+text')
@@ -124,7 +124,18 @@ tab1, tab2 = st.tabs(["Gráfico de Hierarquia", "Tabela de Dados"])
 with tab1:
     st.write("### Gráfico de Hierarquia com Cores por Função")
     fig = create_hierarchy_chart(df_filtered, filter_function=selected_common_functions)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)  # Ocupa a tela cheia
+
+    # Legenda de cores abaixo do gráfico
+    st.write("#### Legenda de Cores:")
+    st.markdown("""
+    - **WELDER**: Cinza
+    - **GRINDER**: Cinza claro
+    - **PIPE FITTER**: Azul
+    - **LEADER**: Verde
+    - **SUPERVISOR**: Amarelo
+    - **EMPLOYEE**: Rosa
+    """)
 
 with tab2:
     st.write("### Tabela de Dados Filtrados")
