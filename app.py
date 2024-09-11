@@ -10,7 +10,13 @@ def load_data():
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia com ajustes de texto dinâmico e zoom interativo
+# Função para truncar texto (limitar número de caracteres)
+def truncate_text(text, max_len=20):
+    if len(text) > max_len:
+        return text[:max_len] + '...'
+    return text
+
+# Função para criar o gráfico de hierarquia com melhorias de agrupamento e navegação
 def create_hierarchy_chart(df, filter_function=None):
     # Preparar os dados de hierarquia
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION', 'EMPLOYEE ID', 'DAILY ATTENDENCE']]
@@ -20,11 +26,13 @@ def create_hierarchy_chart(df, filter_function=None):
     if filter_function:
         hierarchy_data = hierarchy_data[hierarchy_data['COMMON FUNCTION'].isin(filter_function)]
 
-    # Criar um label customizado para incluir nome, função e status de presença no hover
-    hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + 'Função: ' + hierarchy_data['COMMON FUNCTION'] + '<br>ID: ' + hierarchy_data['EMPLOYEE ID'].astype(str) + '<br>Status: ' + hierarchy_data['DAILY ATTENDENCE']
+    # Agrupar por função comum e contar o número de funcionários por função
+    hierarchy_data['EMPLOYEE COUNT'] = hierarchy_data.groupby('COMMON FUNCTION')['EMPLOYEE NAME'].transform('count')
+    hierarchy_data['LABEL'] = hierarchy_data.apply(
+        lambda row: f"{truncate_text(row['EMPLOYEE NAME'])}<br>Função: {row['COMMON FUNCTION']}<br>ID: {row['EMPLOYEE ID']}<br>Status: {row['DAILY ATTENDENCE']}", axis=1)
 
-    # Criar o gráfico de hierarquia com zoom interativo e exibição de textos dinâmicos
-    fig = px.treemap(
+    # Criar o gráfico de hierarquia com agrupamento por função
+    fig = px.sunburst(
         hierarchy_data,
         path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
         color='COMMON FUNCTION',
@@ -36,10 +44,11 @@ def create_hierarchy_chart(df, filter_function=None):
             'SUPERVISOR': '#F4D03F',  # Amarelo suave
             'EMPLOYEE': '#F5B7B1'     # Rosa suave
         },
+        maxdepth=6,  # Limitar a profundidade de visualização para manter o gráfico mais limpo
         title="Hierarquia Organizacional com Funções"
     )
 
-    # Ajustar o layout para melhorar a navegação e legibilidade do texto
+    # Ajustar o layout para otimizar a navegação e legibilidade do texto
     fig.update_layout(
         margin=dict(t=20, l=10, r=10, b=20),
         height=1000,  # Ocupar a tela inteira
@@ -54,7 +63,7 @@ def create_hierarchy_chart(df, filter_function=None):
     # Ajuste de bordas e espaçamento entre os cartões
     fig.update_traces(marker=dict(line=dict(color='#000000', width=0.5)))  # Bordas finas
 
-    # Configurar o hover para exibir nome, função e detalhes nos cartões menores
+    # Configurar o hover para exibir nome completo, função e detalhes nos cartões menores
     fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>', textinfo='label+text')
 
     return fig
@@ -86,8 +95,8 @@ common_functions = df['COMMON FUNCTION'].unique()
 selected_common_functions = st.sidebar.multiselect("Filtrar por Função (Common Function)", options=common_functions, default=common_functions)
 df_filtered = df[df['COMMON FUNCTION'].isin(selected_common_functions)]
 
-# Filtro por Nome do Funcionário
-employee_name = st.sidebar.text_input("Nome do Funcionário", "")
+# Filtro por Nome do Funcionário com busca em tempo real
+employee_name = st.sidebar.text_input("Nome do Funcionário (busca em tempo real)", "")
 if employee_name:
     df_filtered = df_filtered[df_filtered['EMPLOYEE NAME'].str.contains(employee_name, case=False, na=False)]
 
@@ -114,47 +123,4 @@ if selected_shifts:
 
 # Filtro por Presença (MULTI-SELEÇÃO) com valores em inglês
 attendence_options = df_filtered['DAILY ATTENDENCE'].unique()
-selected_attendence = st.sidebar.multiselect("Filtrar por Presença", options=attendence_options, default=attendence_options)
-if selected_attendence:
-    df_filtered = df_filtered[df_filtered['DAILY ATTENDENCE'].isin(selected_attendence)]
-
-# Exibe abas
-tab1, tab2 = st.tabs(["Gráfico de Hierarquia", "Tabela de Dados"])
-
-with tab1:
-    st.write("### Gráfico de Hierarquia com Cores por Função")
-    fig = create_hierarchy_chart(df_filtered, filter_function=selected_common_functions)
-    st.plotly_chart(fig, use_container_width=True)  # Ocupa a tela cheia
-
-    # Legenda de cores abaixo do gráfico
-    st.write("#### Legenda de Cores:")
-    st.markdown("""
-    - **WELDER**: Cinza
-    - **GRINDER**: Cinza claro
-    - **PIPE FITTER**: Azul
-    - **LEADER**: Verde
-    - **SUPERVISOR**: Amarelo
-    - **EMPLOYEE**: Rosa
-    """)
-
-with tab2:
-    st.write("### Tabela de Dados Filtrados")
-    st.dataframe(df_filtered)
-
-    # Botão para baixar dados em CSV
-    csv = convert_df_to_csv(df_filtered)
-    st.download_button(
-        label="📥 Baixar dados filtrados em CSV",
-        data=csv,
-        file_name='dados_filtrados.csv',
-        mime='text/csv',
-    )
-
-    # Botão para baixar dados em Excel
-    excel = convert_df_to_excel(df_filtered)
-    st.download_button(
-        label="📥 Baixar dados filtrados em Excel",
-        data=excel,
-        file_name='dados_filtrados.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    )
+selected_attendence = st.sidebar.multiselect("Filtrar por Presença", options=attendence_options, default
