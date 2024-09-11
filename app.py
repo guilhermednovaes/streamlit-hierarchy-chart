@@ -10,7 +10,7 @@ def load_data():
     df = excel_data.parse('09-09')
     return df
 
-# Função para criar o gráfico de hierarquia com melhorias de legibilidade e navegação
+# Função para criar o gráfico de hierarquia com ajustes de texto dinâmico e zoom interativo
 def create_hierarchy_chart(df, filter_function=None):
     # Preparar os dados de hierarquia
     hierarchy_data = df[['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'EMPLOYEE NAME', 'COMMON FUNCTION', 'EMPLOYEE ID', 'DAILY ATTENDENCE']]
@@ -23,12 +23,12 @@ def create_hierarchy_chart(df, filter_function=None):
     # Criar um label customizado para incluir nome, função e status de presença no hover
     hierarchy_data['LABEL'] = hierarchy_data['EMPLOYEE NAME'] + '<br>' + 'Função: ' + hierarchy_data['COMMON FUNCTION'] + '<br>ID: ' + hierarchy_data['EMPLOYEE ID'].astype(str) + '<br>Status: ' + hierarchy_data['DAILY ATTENDENCE']
 
-    # Criar o gráfico de hierarquia com zoom interativo e legendas apropriadas
+    # Criar o gráfico de hierarquia com zoom interativo e exibição de textos dinâmicos
     fig = px.treemap(
         hierarchy_data,
         path=['COMPANY', 'PROJECT', 'LEAD', 'INCHARGE SUPERVISOR', 'LEADER', 'LABEL'],
         color='COMMON FUNCTION',
-        color_discrete_map={  # Paleta de cores elegante e discreta
+        color_discrete_map={  # Paleta de cores refinada
             'WELDER': '#5D6D7E',      # Cinza neutro
             'GRINDER': '#AAB7B8',     # Cinza claro
             'PIPE FITTER': '#3498DB', # Azul elegante
@@ -39,22 +39,22 @@ def create_hierarchy_chart(df, filter_function=None):
         title="Hierarquia Organizacional com Funções"
     )
 
-    # Ajustar o layout para otimizar a navegação em tela cheia
+    # Ajustar o layout para melhorar a navegação e legibilidade do texto
     fig.update_layout(
         margin=dict(t=20, l=10, r=10, b=20),
         height=1000,  # Ocupar a tela inteira
         hovermode="closest",
-        uniformtext_minsize=14,  # Ajuste de texto dinâmico para manter legibilidade
+        uniformtext_minsize=10,  # Texto dinâmico para caber nos cartões menores
         uniformtext_mode='hide',
-        paper_bgcolor='rgba(0,0,0,0)',  # Fundo transparente para dar um aspecto mais corporativo
-        plot_bgcolor='#FFFFFF',  # Fundo branco suave
+        paper_bgcolor='rgba(0,0,0,0)',  # Fundo transparente para visual limpo
+        plot_bgcolor='#FFFFFF',  # Fundo branco
         font=dict(family="Arial", size=12, color="#000000")  # Fonte elegante e legível
     )
 
     # Ajuste de bordas e espaçamento entre os cartões
-    fig.update_traces(marker=dict(line=dict(color='#000000', width=0.5)))  # Bordas finas para melhor separação
+    fig.update_traces(marker=dict(line=dict(color='#000000', width=0.5)))  # Bordas finas
 
-    # Configurar o hover para exibir nome, função e detalhes
+    # Configurar o hover para exibir nome, função e detalhes nos cartões menores
     fig.update_traces(hovertemplate='<b>%{label}</b><extra></extra>', textinfo='label+text')
 
     return fig
